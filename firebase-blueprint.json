@@ -1,0 +1,101 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "professor", "student"] },
+        "phone": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "invitationToken": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Classroom": {
+      "title": "Classroom",
+      "description": "Information about university classrooms",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "floor": { "type": "number" },
+        "capacity": { "type": "number" },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["available", "maintenance", "occupied"] }
+      },
+      "required": ["id", "name", "floor", "capacity"]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "Classroom assignment record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "classroomId": { "type": "string" },
+        "professorId": { "type": "string" },
+        "subject": { "type": "string" },
+        "studentCount": { "type": "number" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "date": { "type": "string", "format": "date" }
+      },
+      "required": ["classroomId", "professorId", "subject", "studentCount", "date"]
+    },
+    "MarketplaceItem": {
+      "title": "MarketplaceItem",
+      "description": "Item listed in the student marketplace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sellerId", "title", "price", "createdAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Institutional announcement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] }
+      },
+      "required": ["title", "content", "authorId", "createdAt"]
+    },
+    "Invitation": {
+      "title": "Invitation",
+      "description": "Registration invitation link",
+      "type": "object",
+      "properties": {
+        "token": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "used": { "type": "boolean" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "role": { "type": "string", "enum": ["admin", "professor", "student"] }
+      },
+      "required": ["token", "email", "expiresAt", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/classrooms/{classroomId}": { "schema": "Classroom", "description": "Classroom inventory" },
+    "/assignments/{assignmentId}": { "schema": "Assignment", "description": "Classroom assignments" },
+    "/marketplace/{itemId}": { "schema": "MarketplaceItem", "description": "Marketplace listings" },
+    "/announcements/{announcementId}": { "schema": "Announcement", "description": "Institutional news" },
+    "/invitations/{token}": { "schema": "Invitation", "description": "Registration tokens" }
+  }
+}

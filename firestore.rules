@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: uid, email, role, phone, isVerified, invitationToken, name
+    //
+    // Collection: classrooms
+    // Fields: id, name, floor, capacity, features, status
+    //
+    // Collection: assignments
+    // Fields: id, classroomId, professorId, subject, studentCount, startTime, endTime, date
+    //
+    // Collection: marketplace
+    // Fields: id, sellerId, title, description, price, imageUrl, category, createdAt
+    //
+    // Collection: announcements
+    // Fields: id, title, content, authorId, createdAt, priority
+    //
+    // Collection: invitations
+    // Fields: token, email, phone, used, expiresAt, role
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "josdndev@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function hasOnlyAllowedFields(data, allowedFields) {
+      return data.keys().hasOnly(allowedFields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.email is string && isValidEmail(data.email) &&
+             data.role in ['admin', 'professor', 'student'] &&
+             data.uid == request.auth.uid;
+    }
+
+    function isValidClassroom(data) {
+      return data.name is string && data.name.size() > 0 &&
+             data.floor is number && data.capacity is number && data.capacity > 0;
+    }
+
+    function isValidAssignment(data) {
+      return data.classroomId is string && data.professorId is string &&
+             data.studentCount is number && data.studentCount > 0 &&
+             data.date is string;
+    }
+
+    function isValidMarketplaceItem(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             data.price is number && data.price >= 0 &&
+             data.sellerId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role);
+    }
+
+    match /classrooms/{classroomId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidClassroom(request.resource.data);
+    }
+
+    match /assignments/{assignmentId} {
+      allow read: if true;
+      allow write: if (isAdmin() || isAuthenticated()) && isValidAssignment(request.resource.data);
+    }
+
+    match /marketplace/{itemId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidMarketplaceItem(request.resource.data);
+      allow update, delete: if isAuthenticated() && (resource.data.sellerId == request.auth.uid || isAdmin());
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /invitations/{token} {
+      allow read: if true; // Needed for registration check
+      allow write: if isAdmin();
+    }
+  }
+}
